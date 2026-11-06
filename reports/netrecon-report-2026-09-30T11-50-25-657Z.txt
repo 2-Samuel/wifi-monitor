@@ -1,0 +1,138 @@
+============================================================
+ NETRECON v2.1 — SECURITY & NETWORK RECONNAISSANCE REPORT
+============================================================
+ Generated : Wed Sep 30 2026 14:50:25 GMT+0300 (East Africa Time)
+ Host      : DESKTOP-5CGPPVL  (Windows_NT 10.0.22000)
+ Operator  : Samz
+ Scope     : local interface + private LAN
+------------------------------------------------------------
+--- INTERFACE ---
+interface      : Wi-Fi
+adapter        : Intel(R) Dual Band Wireless-AC 8265
+mac            : 14:4f:8a:42:26:2e
+ipv4           : 10.147.28.131/24
+subnet mask    : 255.255.255.0
+gateway        : 10.147.28.130
+dns            : 10.147.28.130
+link speed     : 72.2 / 72.2 Mbps
+
+--- WIRELESS LINK ---
+ssid           : Redmi 13
+bssid          : 46:be:2d:95:99:f2
+signal         : -52 dBm (95%)
+channel / band : 6 / 2.4 GHz
+rate rx/tx     : 72.2 / 72.2 Mbps
+security       : WPA2 (CCMP)
+
+--- SPEED TEST ---
+download       : 0.06 Mbps (94.6 KB / 12.02 s)
+upload         : 0.38 Mbps (688.0 KB / 15.02 s)
+ping / jitter  : 780 ms / 134.8 ms
+packet loss    : 16.7 %
+endpoint       : speed.cloudflare.com @ 2026-09-30T11:50:13.369Z
+
+--- CONNECTIONS ---
+tcp / udp      : 337 / 56
+established    : 41
+listening      : 38
+top peers      : 172.217.113.4, 34.104.35.123, 162.19.171.181, 47.91.72.149, [2603:1020:805:3::401], [2606:4700:78::90:0:141]
+
+--- CONNECTED DEVICES (ARP) ---
+  10.147.28.130   46:be:2d:95:99:f2   Router / Gateway
+
+--- ROUTE ---
+  1   10.147.28.130     (gateway)                     2 ms
+  2   *                 Request timed out             --
+  3   *                 Request timed out             --
+  4   10.1.71.87        (no PTR record)               636 ms
+  5   *                 Request timed out             --
+  6   *                 Request timed out             --
+  7   10.70.29.222      (no PTR record)               744 ms
+  8   *                 Request timed out             --
+  9   *                 Request timed out             --
+  10  *                 Request timed out             --
+  11  *                 Request timed out             --
+  12  142.250.75.110    tztlva-ac-in-f14.1e100.net    657 ms
+
+--- GEOLOCATION ---
+  coordinates     0.0612N  34.2882E
+  city / region   Siaya, Siaya County
+  country         Kenya
+  isp             Safaricom Limited
+  asn             AS33771
+  public ip       196.96.60.207
+  timezone        Africa/Nairobi
+  method          ip-geolocation  (accuracy +/-5000 m)
+
+--- SECURITY AUDIT ---
+  score           36/100 (grade F)
+  verdict         Several independent weak points - Not hardened. Someone already on this network would have multiple ways in.
+  detail          What was found: local accounts have no effective password length floor and no lockout, so guessing is unthrottled; 1 device(s) on this network expose a high-risk service (10.147.28.131:445); this host itself exposes a high-risk service to the LAN.
+  scope           Local host configuration, the default gateway, and this /24. Connect-only probes. No credential testing, no exploitation.
+
+  [HOST HARDENING] Windows configuration posture of this machine
+    HIGH  No minimum password length                  0 characters
+           fix: Set a real floor: net accounts /minpw:12  (and enable a lockout below)
+    HIGH  No account lockout                          Never
+           fix: Set a threshold: net accounts /lockoutthreshold:10 /lockoutduration:15
+    MED   No password history                         None
+           fix: net accounts /passwordhistory:24
+    MED   Secure Boot disabled                        0x0
+           fix: Re-enable in firmware setup, or verify the platform is in Legacy/BIOS mode.
+    MED   Sensitive local services listening          135, 139, 445, 3306  (25 listening in total)
+           fix: Stop what you do not need (net stop <service>), or add a Windows Firewall inbound rule scoped to your own subnet.
+    LOW   Network profile is Public on a local networ Public
+           fix: Switch trusted Wi-Fi to Private: Settings > Network & Internet > Wi-Fi > Properties > Network profile type = Private
+    LOW   USB mass storage permitted                  USBSTOR start = 3
+           fix: Restrict the policy: Computer Configuration > Administrative Templates > System > Removable Storage > Deny all removable storage
+    INFO  Password expiry                             42 days
+           fix: Consider: net accounts /maxpwage:0 (never expire) alongside a long passphrase
+    INFO  OS build                                    22000.2538
+    PASS  Windows Firewall                            Domain=ON  Private=ON  Public=ON
+    PASS  Remote Desktop                              disabled
+    PASS  SMBv1                                       not present / not enabled
+    PASS  User Account Control                        enabled
+    PASS  Guest account                               No
+    PASS  Network shares                              C$ IPC$ ADMIN$
+    PASS  Microsoft Defender                          running
+    PASS  Defender network inspection                 running
+    PASS  Antivirus signatures                        1 day(s) old
+    PASS  Automatic logon                             not configured
+    PASS  Remote Assistance                           not enabled
+    PASS  Remote Registry service                     STOPPED
+
+  [WI-FI SECURITY] Link-layer encryption and radio posture of Redmi 13
+    LOW   SSID reveals the device                     Redmi 13
+           fix: Rename the network to something neutral, and disable WPS
+    INFO  Radio band                                  2.4 GHz / channel 6 / 802.11n
+    PASS  WPA2 encryption                             WPA2 / CCMP
+    PASS  Channel utilisation                         channel 6 (2.4 GHz), 1 nearby AP(s)
+    PASS  Single BSSID for this SSID                  46:be:2d:95:99:f2
+    PASS  Signal strength                             -52 dBm
+
+  [GATEWAY / ROUTER] Configuration exposure of 10.147.28.130
+    LOW   Router is the DNS resolver                  10.147.28.130
+           fix: Consider a DoH resolver (Cloudflare, Quad9) to bypass the router for DNS
+    INFO  Management interface reachable from LAN     none found
+           fix: In the router admin page, confirm "Remote management / WAN access" is disabled
+    INFO  Router identity                             not identified
+           fix: Update the router firmware to the latest release published by your ISP
+    PASS  No telnet/ftp on the router                 ports 23/21 closed
+    PASS  No management ports answered                no open admin ports
+    PASS  Scan scope                                  TCP connect to 10.147.28.130 only
+
+  [LAN EXPOSURE] Service exposure across 10.147.28.0/24
+    HIGH  1 high-risk service(s) reachable            10.147.28.131:445 smb
+           fix: On each host: disable the service if unneeded, or restrict it with a Windows Firewall inbound rule limited to your own subnet/IP.
+    MED   2 medium-risk service(s)                    10.147.28.130:53, 10.147.28.131:139
+           fix: Close or restrict what you do not need.
+    INFO  Sweep performed                             3 service(s) across 2 live host(s)
+    open services:
+      10.147.28.131     445    smb           HIGH
+      10.147.28.130     53     dns           MED
+      10.147.28.131     139    netbios       MED
+
+
+NOTE: all values captured from this host's network stack.
+Audit is a read-only configuration review: it tests no credentials
+and performs no exploitation. Probing stayed on this subnet.

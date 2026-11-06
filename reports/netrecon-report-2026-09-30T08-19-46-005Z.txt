@@ -1,0 +1,45 @@
+============================================================
+ NETRECON v2.1 — SECURITY & NETWORK RECONNAISSANCE REPORT
+============================================================
+ Generated : Wed Sep 30 2026 11:19:46 GMT+0300 (East Africa Time)
+ Host      : DESKTOP-5CGPPVL  (Windows_NT 10.0.22000)
+ Operator  : Samz
+ Scope     : local interface + private LAN
+------------------------------------------------------------
+--- INTERFACE ---
+interface      : Ethernet 2
+adapter        : VirtualBox Host-Only Ethernet Adapter
+mac            : 0a:00:27:00:00:10
+ipv4           : 192.168.56.1/24
+subnet mask    : 255.255.255.0
+gateway        : —
+dns            : fec0:0:0:ffff::1%1, fec0:0:0:ffff::2%1, fec0:0:0:ffff::3%1
+link speed     : —
+
+--- WIRELESS LINK ---
+ssid           : not associated
+bssid          : —
+signal         : —
+channel / band : —
+rate rx/tx     : —
+security       : —
+
+--- SPEED TEST ---
+download       : null Mbps (0 B / 0 s)
+upload         : null Mbps (0 B / 0 s)
+ping / jitter  : null ms / null ms
+packet loss    : null %
+endpoint       : speed.cloudflare.com @ 2026-09-30T08:14:37.662Z
+
+--- CONNECTIONS ---
+tcp / udp      : 138 / 33
+established    : 16
+listening      : 40
+top peers      : 47.91.72.149, 52.98.20.146
+
+--- CONNECTED DEVICES (ARP) ---
+  none
+
+--- ROUTE ---
+
+NOTE: all values captured from this host's network stack.

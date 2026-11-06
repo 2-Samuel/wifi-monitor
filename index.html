@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NETRECON v2.1 — Network Reconnaissance &amp; Traffic Monitor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0e14'/%3E%3Ccircle cx='16' cy='16' r='10.5' fill='none' stroke='%2339ff9e' stroke-width='1.6' opacity='.75'/%3E%3Ccircle cx='16' cy='16' r='6' fill='none' stroke='%2339ff9e' stroke-width='1.4' opacity='.45'/%3E%3Ccircle cx='16' cy='16' r='2.4' fill='%2339ff9e'/%3E%3Cpath d='M16 16 L25 9' stroke='%2300e5ff' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+<!-- fonts are intentionally local-only: the dashboard must render fully offline -->
+<style>
+/* ============================================================
+   NETRECON v2.1 — UI THEME
+   All telemetry shown is simulated example data for mockup.
+   ============================================================ */
+:root{
+  --bg-0:#04060a;
+  --bg-1:#070b11;
+  --bg-2:#0a1018;
+  --bg-3:#0d151f;
+  --line:#12212e;
+  --line-2:#183040;
+  --txt:#9fd8e8;
+  --txt-dim:#4d7286;
+  --txt-faint:#2f4d5e;
+  --cy:#00e5ff;
+  --cy-soft:rgba(0,229,255,.14);
+  --gr:#39ff9e;
+  --gr-soft:rgba(57,255,158,.13);
+  --pu:#b06bff;
+  --pu-soft:rgba(176,107,255,.14);
+  --am:#ffb545;
+  --rd:#ff4d6a;
+  --glow-cy:0 0 6px rgba(0,229,255,.55);
+  --glow-gr:0 0 6px rgba(57,255,158,.55);
+  --mono:'JetBrains Mono','Fira Code','Share Tech Mono',Consolas,'DejaVu Sans Mono','Courier New',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg-0);
+  color:var(--txt);
+  font-family:var(--mono);
+  font-size:12.5px;
+  line-height:1.45;
+  min-width:1560px;
+  min-height:880px;
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+/* ---------- background layers ---------- */
+#bg-grid{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(0,229,255,.028) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,229,255,.028) 1px,transparent 1px),
+    linear-gradient(rgba(176,107,255,.018) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(176,107,255,.018) 1px,transparent 1px);
+  background-size:44px 44px,44px 44px,220px 220px,220px 220px;
+  mask-image:radial-gradient(ellipse 90% 80% at 50% 40%,#000 30%,transparent 100%);
+  -webkit-mask-image:radial-gradient(ellipse 90% 80% at 50% 40%,#000 30%,transparent 100%);
+}
+#bg-glow{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(900px 480px at 12% -8%,rgba(0,229,255,.10),transparent 65%),
+    radial-gradient(800px 460px at 92% 4%,rgba(176,107,255,.10),transparent 62%),
+    radial-gradient(1100px 600px at 50% 120%,rgba(57,255,158,.06),transparent 60%);
+}
+#scanlines{
+  position:fixed;inset:0;z-index:900;pointer-events:none;opacity:.5;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.016) 0 1px,transparent 1px 3px);
+}
+#scanbeam{
+  position:fixed;left:0;right:0;height:180px;z-index:901;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(0,229,255,.045),transparent);
+  animation:beam 9s linear infinite;
+}
+@keyframes beam{0%{top:-200px}100%{top:100%}}
+
+/* ---------- app shell ---------- */
+#app{position:relative;z-index:2;display:flex;flex-direction:column;height:100vh;}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+header{
+  display:flex;align-items:stretch;justify-content:space-between;
+  background:linear-gradient(180deg,#080e15 0%,#05090e 100%);
+  border-bottom:1px solid var(--line-2);
+  box-shadow:0 1px 0 rgba(0,229,255,.10),0 6px 26px -14px rgba(0,229,255,.5);
+  flex:0 0 auto;
+}
+.brand{display:flex;align-items:center;gap:14px;padding:11px 22px 11px 20px;border-right:1px solid var(--line);}
+.logo{width:40px;height:40px;flex:0 0 auto;filter:drop-shadow(0 0 6px rgba(0,229,255,.55));}
+.brand h1{
+  font-size:20px;font-weight:700;letter-spacing:.22em;color:#eafcff;
+  text-shadow:0 0 12px rgba(0,229,255,.65);line-height:1.1;
+}
+.brand h1 em{font-style:normal;color:var(--gr);text-shadow:0 0 12px rgba(57,255,158,.6);font-weight:500}
+.brand .tagline{
+  font-size:9.5px;letter-spacing:.34em;color:var(--txt-dim);margin-top:3px;text-transform:uppercase;
+}
+.brand .tagline b{color:var(--cy);font-weight:400}
+.brand .tagline i{color:var(--pu);font-style:normal;font-weight:400}
+
+.hstat{
+  display:flex;align-items:center;gap:0;padding:0 6px;
+}
+.hcell{
+  display:flex;flex-direction:column;justify-content:center;gap:2px;
+  padding:9px 18px;border-left:1px solid var(--line);min-width:104px;
+}
+.hcell .k{font-size:8.5px;letter-spacing:.24em;color:var(--txt-faint);text-transform:uppercase}
+.hcell .v{font-size:12.5px;color:#cfeef8;letter-spacing:.06em;white-space:nowrap}
+.hcell .v.cy{color:var(--cy);text-shadow:0 0 8px rgba(0,229,255,.5)}
+.hcell .v.pu{color:var(--pu);text-shadow:0 0 8px rgba(176,107,255,.5)}
+.dot-online{
+  display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gr);
+  box-shadow:0 0 8px var(--gr);margin-right:7px;vertical-align:middle;
+  animation:pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.82)}}
+.caret{display:inline-block;width:7px;height:13px;background:var(--cy);vertical-align:-2px;
+  box-shadow:0 0 8px rgba(0,229,255,.7);animation:blink 1.05s steps(1) infinite}
+@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
+
+/* ============================================================
+   BODY LAYOUT
+   ============================================================ */
+.layout{display:flex;flex:1 1 auto;min-height:0}
+
+/* ---------- SIDEBAR ---------- */
+aside{
+  flex:0 0 226px;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,#060b11 0%,#04080c 100%);
+  border-right:1px solid var(--line-2);
+  box-shadow:1px 0 0 rgba(0,229,255,.06);
+}
+.side-head{
+  padding:9px 16px;border-bottom:1px solid var(--line);
+  font-size:9px;letter-spacing:.26em;color:var(--txt-faint);text-transform:uppercase;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.side-head span.act{color:var(--gr);text-shadow:0 0 8px rgba(57,255,158,.5)}
+nav{flex:1 1 auto;padding:8px 0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(0,229,255,.22) transparent}
+nav::-webkit-scrollbar{width:5px}
+nav::-webkit-scrollbar-thumb{background:rgba(0,229,255,.22);border-radius:3px}
+nav::-webkit-scrollbar-track{background:transparent}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:7px 14px 7px 12px;
+  border-left:2px solid transparent;color:var(--txt-dim);cursor:pointer;
+  font-size:12px;letter-spacing:.04em;position:relative;user-select:none;
+  transition:background .13s,color .13s,border-color .13s;
+}
+.nav-item .n{font-size:9px;color:var(--txt-faint);letter-spacing:.1em;min-width:16px}
+.nav-item .ic{width:15px;height:15px;flex:0 0 auto;opacity:.75}
+.nav-item:hover{background:rgba(0,229,255,.05);color:#bfe9f5}
+.nav-item.active{
+  background:linear-gradient(90deg,rgba(0,229,255,.16),rgba(0,229,255,0) 92%);
+  border-left-color:var(--cy);color:#eafcff;text-shadow:0 0 10px rgba(0,229,255,.75);
+}
+.nav-item.active .n{color:var(--cy)}
+.nav-item.active .ic{opacity:1;filter:drop-shadow(0 0 5px rgba(0,229,255,.8))}
+.nav-item .kb{
+  margin-left:auto;font-size:9px;color:var(--txt-faint);border:1px solid var(--line-2);
+  padding:0 4px;border-radius:2px;background:rgba(255,255,255,.02)
+}
+.nav-item.active .kb{color:var(--gr);border-color:rgba(57,255,158,.35)}
+.nav-sep{height:1px;background:var(--line);margin:7px 12px}
+.nav-item.exit{color:#7c5560}.nav-item.exit:hover{background:rgba(255,77,106,.07);color:#ffb9c4}
+.nav-item.exit .ic{opacity:.6}
+
+.side-foot{
+  border-top:1px solid var(--line);padding:10px 14px;
+  background:linear-gradient(180deg,rgba(0,229,255,.04),transparent);
+}
+.side-foot .flow{
+  font-size:10.5px;letter-spacing:.2em;color:var(--txt-dim);text-align:center;
+}
+.side-foot .flow b{color:var(--cy);text-shadow:0 0 9px rgba(0,229,255,.6);font-weight:500}
+.side-foot .flow s{color:var(--gr);text-decoration:none;text-shadow:0 0 9px rgba(57,255,158,.6)}
+.side-foot .flow em{color:var(--pu);font-style:normal;text-shadow:0 0 9px rgba(176,107,255,.6)}
+.side-foot .meta{
+  margin-top:7px;padding-top:6px;border-top:1px dashed var(--line);
+  display:flex;justify-content:space-between;font-size:8.5px;color:var(--txt-faint);letter-spacing:.12em
+}
+
+/* ---------- MAIN ---------- */
+main{
+  flex:1 1 auto;min-width:0;padding:11px;gap:11px;
+  display:grid;
+  grid-template-columns:1.42fr 1fr;
+  grid-auto-rows:min-content;
+  overflow:auto;
+  scrollbar-color:#17303f #060a0e;
+}
+main::-webkit-scrollbar{width:9px;height:9px}
+main::-webkit-scrollbar-track{background:#05090d}
+main::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#123043,#0d1c27);border:1px solid #17394d}
+
+/* ============================================================
+   PANEL
+   ============================================================ */
+.panel{
+  position:relative;background:linear-gradient(180deg,rgba(10,16,24,.94),rgba(6,10,15,.96));
+  border:1px solid var(--line-2);border-radius:2px;
+  box-shadow:inset 0 0 44px rgba(0,229,255,.028),0 6px 22px -16px rgba(0,0,0,.9);
+  display:flex;flex-direction:column;
+}
+.panel::before,.panel::after{
+  content:"";position:absolute;width:9px;height:9px;pointer-events:none;
+  border-color:var(--cy);opacity:.85;
+}
+.panel::before{top:-1px;left:-1px;border-top:1px solid;border-left:1px solid}
+.panel::after{bottom:-1px;right:-1px;border-bottom:1px solid;border-right:1px solid}
+.panel.gr::before,.panel.gr::after{border-color:var(--gr)}
+.panel.pu::before,.panel.pu::after{border-color:var(--pu)}
+
+.p-head{
+  display:flex;align-items:center;gap:10px;
+  padding:7px 12px;border-bottom:1px solid var(--line);
+  background:linear-gradient(90deg,rgba(0,229,255,.09),rgba(0,229,255,.015) 60%,transparent);
+  position:relative;
+}
+.panel.gr .p-head{background:linear-gradient(90deg,rgba(57,255,158,.09),rgba(57,255,158,.015) 60%,transparent)}
+.panel.pu .p-head{background:linear-gradient(90deg,rgba(176,107,255,.10),rgba(176,107,255,.015) 60%,transparent)}
+.p-head::after{
+  content:"";position:absolute;left:0;bottom:-1px;width:64px;height:1px;
+  background:var(--cy);box-shadow:var(--glow-cy);
+}
+.panel.gr .p-head::after{background:var(--gr);box-shadow:var(--glow-gr)}
+.panel.pu .p-head::after{background:var(--pu);box-shadow:0 0 6px rgba(176,107,255,.55)}
+.p-title{
+  font-size:11.5px;font-weight:700;letter-spacing:.2em;color:#dff8ff;
+  text-shadow:0 0 10px rgba(0,229,255,.45);white-space:nowrap;
+}
+.panel.gr .p-title{text-shadow:0 0 10px rgba(57,255,158,.45)}
+.panel.pu .p-title{text-shadow:0 0 10px rgba(176,107,255,.45)}
+.p-title .sq{color:var(--txt-faint);margin-right:7px;font-weight:400}
+.p-tools{margin-left:auto;display:flex;align-items:center;gap:9px;font-size:9px;color:var(--txt-faint);letter-spacing:.14em}
+.badge{
+  border:1px solid rgba(57,255,158,.4);color:var(--gr);padding:1px 6px;border-radius:2px;
+  font-size:8.5px;letter-spacing:.18em;background:rgba(57,255,158,.07);
+  display:inline-flex;align-items:center;gap:5px;
+}
+.badge .dot-online{width:5px;height:5px;margin:0}
+.badge.cy{border-color:rgba(0,229,255,.4);color:var(--cy);background:var(--cy-soft)}
+.badge.pu{border-color:rgba(176,107,255,.4);color:var(--pu);background:var(--pu-soft)}
+.p-body{padding:10px 12px 12px}
+.p-body.tight{padding:0}
+
+/* ============================================================
+   TABLES
+   ============================================================ */
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+thead th{
+  text-align:left;padding:6px 9px;font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--txt-faint);font-weight:500;border-bottom:1px solid var(--line-2);
+  background:rgba(255,255,255,.014);white-space:nowrap;position:relative;
+}
+tbody td{
+  padding:5px 9px;border-bottom:1px solid rgba(18,33,46,.72);color:#8fbfd0;white-space:nowrap;
+}
+tbody tr:nth-child(even){background:rgba(255,255,255,.012)}
+tbody tr:hover{background:rgba(0,229,255,.05)}
+tbody tr.sel{
+  background:linear-gradient(90deg,rgba(57,255,158,.14),rgba(0,229,255,.05) 60%,transparent);
+}
+tbody tr.sel td{border-bottom-color:rgba(57,255,158,.22)}
+tbody tr.sel td:first-child{box-shadow:inset 2px 0 0 var(--gr)}
+tr.locked td{color:#93c9d8}
+.idx{color:var(--txt-faint);font-size:10px;letter-spacing:.06em}
+.ssid{color:#cfeaf4;letter-spacing:.02em}
+tr.sel .ssid{color:#eafff4;font-weight:700;text-shadow:0 0 10px rgba(57,255,158,.5)}
+.lock{color:var(--gr);font-size:9.5px;margin-left:7px;letter-spacing:.1em}
+.num{font-variant-numeric:tabular-nums}
+.tbl-wrap{position:relative}
+.tbl-foot{
+  display:flex;align-items:center;gap:14px;padding:6px 12px;border-top:1px solid var(--line);
+  background:rgba(255,255,255,.012);font-size:9.5px;color:var(--txt-faint);letter-spacing:.12em;
+  flex-wrap:wrap;
+}
+.tbl-foot b{color:var(--txt-dim);font-weight:500}
+.tbl-foot .ok{color:var(--gr)}
+.chip{
+  border:1px solid var(--line-2);padding:0 5px;border-radius:2px;color:var(--txt-dim);
+  background:rgba(255,255,255,.02);font-size:9px
+}
+.chip.wpa2{border-color:rgba(0,229,255,.35);color:var(--cy);background:rgba(0,229,255,.06)}
+.chip.wpa3{border-color:rgba(57,255,158,.4);color:var(--gr);background:rgba(57,255,158,.07)}
+.chip.wep{border-color:rgba(255,181,69,.45);color:var(--am);background:rgba(255,181,69,.08)}
+.chip.hidden{border-color:rgba(176,107,255,.45);color:var(--pu);background:rgba(176,107,255,.08)}
+
+/* signal bars */
+.sig{display:flex;align-items:flex-end;gap:2.5px;height:11px;margin-right:8px;vertical-align:-1px}
+.sig i{width:3px;background:#1b3341;border-radius:.5px;display:block}
+.sig i:nth-child(1){height:3px}
+.sig i:nth-child(2){height:5.5px}
+.sig i:nth-child(3){height:8px}
+.sig i:nth-child(4){height:10.5px}
+.sig.on i{background:var(--gr);box-shadow:0 0 5px rgba(57,255,158,.6)}
+.sig.mid i{background:var(--am);box-shadow:0 0 5px rgba(255,181,69,.55)}
+.sig.low i{background:var(--rd);box-shadow:0 0 5px rgba(255,77,106,.5)}
+.dbm{font-variant-numeric:tabular-nums}
+.dbm.e{color:var(--gr)}.dbm.g{color:#b6e07a}.dbm.y{color:var(--am)}.dbm.w{color:var(--rd)}
+
+/* ============================================================
+   PANEL: WI-FI header strip
+   ============================================================ */
+.strip{
+  display:flex;align-items:center;gap:0;border-bottom:1px solid var(--line);
+  background:rgba(255,255,255,.015);
+}
+.strip .cell{
+  padding:7px 13px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:1px
+}
+.strip .cell:last-child{border-right:none}
+.strip .k{font-size:8.5px;letter-spacing:.22em;color:var(--txt-faint);text-transform:uppercase}
+.strip .v{font-size:12px;color:#cfeef8;font-variant-numeric:tabular-nums}
+.strip .v.cy{color:var(--cy);text-shadow:0 0 9px rgba(0,229,255,.5)}
+.strip .v.gr{color:var(--gr);text-shadow:0 0 9px rgba(57,255,158,.5)}
+.strip .grow{margin-left:auto;padding-left:16px}
+.progress-mini{width:132px;height:5px;background:#0d1a23;border:1px solid var(--line-2);position:relative;overflow:hidden;margin-top:4px}
+.progress-mini span{
+  position:absolute;inset:0;width:100%;
+  background:linear-gradient(90deg,rgba(0,229,255,.35),var(--cy));
+  box-shadow:0 0 9px rgba(0,229,255,.7);
+  transform-origin:left;animation:fill 1.5s cubic-bezier(.2,.8,.25,1) both;
+}
+@keyframes fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+/* ============================================================
+   METRICS
+   ============================================================ */
+.metric-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.metric{
+  border:1px solid var(--line);background:linear-gradient(180deg,rgba(0,229,255,.05),rgba(0,0,0,.15));
+  padding:8px 10px;position:relative;overflow:hidden;
+}
+.metric::after{content:"";position:absolute;left:0;top:0;width:2px;height:100%;background:var(--cy);box-shadow:var(--glow-cy)}
+.metric.gr::after{background:var(--gr);box-shadow:var(--glow-gr)}
+.metric.pu::after{background:var(--pu);box-shadow:0 0 6px rgba(176,107,255,.6)}
+.metric .k{font-size:8.5px;letter-spacing:.2em;color:var(--txt-faint);text-transform:uppercase;white-space:nowrap}
+.metric .v{
+  font-size:25px;font-weight:700;color:var(--cy);line-height:1.16;letter-spacing:-.01em;
+  font-variant-numeric:tabular-nums;text-shadow:0 0 16px rgba(0,229,255,.45);white-space:nowrap
+}
+.metric.gr .v{color:var(--gr);text-shadow:0 0 16px rgba(57,255,158,.4)}
+.metric.pu .v{color:var(--pu);text-shadow:0 0 16px rgba(176,107,255,.4)}
+.metric .v small{font-size:11px;font-weight:400;color:var(--txt-dim);margin-left:4px;letter-spacing:.06em}
+.metric .spark{margin-top:5px;height:3px;background:#0c1720;position:relative;overflow:hidden}
+.metric .spark i{position:absolute;inset:0;background:linear-gradient(90deg,transparent,var(--cy));opacity:.65;animation:sweep 1.7s linear infinite}
+.metric.gr .spark i{background:linear-gradient(90deg,transparent,var(--gr))}
+.metric.pu .spark i{background:linear-gradient(90deg,transparent,var(--pu))}
+@keyframes sweep{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+
+.bar{margin-top:9px}
+.bar .lab{display:flex;justify-content:space-between;font-size:9.5px;letter-spacing:.16em;color:var(--txt-faint);margin-bottom:4px;text-transform:uppercase}
+.bar .lab b{color:var(--txt-dim);font-weight:400;font-variant-numeric:tabular-nums}
+.bar .track{height:9px;background:#080f15;border:1px solid var(--line-2);position:relative;overflow:hidden}
+.bar .track::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(90deg,rgba(0,0,0,.42) 0 2px,transparent 2px 6px);
+}
+.bar .fill{
+  position:absolute;left:0;top:0;bottom:0;width:0;
+  background:linear-gradient(90deg,rgba(0,229,255,.35),var(--cy) 78%,#b6f7ff);
+  box-shadow:0 0 12px rgba(0,229,255,.6);
+  transition:width .45s cubic-bezier(.2,.8,.25,1);
+}
+.bar.up .fill{background:linear-gradient(90deg,rgba(176,107,255,.35),var(--pu) 78%,#e0c6ff);box-shadow:0 0 12px rgba(176,107,255,.55)}
+.bar .scale{
+  display:flex;justify-content:space-between;margin-top:3px;font-size:8.5px;color:var(--txt-faint);
+  letter-spacing:.1em;border-top:1px dashed rgba(24,48,64,.7);padding-top:3px
+}
+
+/* chart block */
+.chart-wrap{margin-top:11px;border:1px solid var(--line);background:
+  linear-gradient(180deg,rgba(0,229,255,.035),transparent 40%),#060b10;position:relative}
+.chart-title{
+  position:absolute;top:6px;left:10px;font-size:9px;letter-spacing:.2em;color:var(--txt-faint);
+  text-transform:uppercase;z-index:2;pointer-events:none
+}
+.chart-legend{
+  position:absolute;top:5px;right:9px;display:flex;gap:12px;font-size:9px;letter-spacing:.14em;z-index:2;
+  pointer-events:none
+}
+.chart-legend span{display:flex;align-items:center;gap:5px;color:var(--txt-dim)}
+.chart-legend i{width:11px;height:2px;display:block;box-shadow:0 0 7px currentColor}
+canvas{display:block;width:100%}
+.axis-note{
+  display:flex;justify-content:space-between;padding:3px 9px;border-top:1px solid var(--line);
+  font-size:8.5px;color:var(--txt-faint);letter-spacing:.14em;background:rgba(255,255,255,.012)
+}
+
+/* ============================================================
+   KV / INFO BLOCKS
+   ============================================================ */
+.kv{display:grid;grid-template-columns:auto 1fr;gap:0;font-size:11.5px}
+.kv > div{padding:5px 10px;border-bottom:1px solid rgba(18,33,46,.6)}
+.kv > div:nth-child(odd){
+  color:var(--txt-faint);font-size:9.5px;letter-spacing:.17em;text-transform:uppercase;
+  background:rgba(255,255,255,.012);white-space:nowrap;display:flex;align-items:center
+}
+.kv > div:nth-child(even){color:#bfe6f2;font-variant-numeric:tabular-nums;word-break:break-all}
+.kv > div:nth-last-child(1),.kv > div:nth-last-child(2){border-bottom:none}
+.kv .cy{color:var(--cy)}.kv .gr{color:var(--gr)}.kv .pu{color:var(--pu)}.kv .dim{color:var(--txt-dim)}
+
+.sub{
+  font-size:9px;letter-spacing:.24em;color:var(--txt-faint);text-transform:uppercase;
+  padding:7px 12px 5px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.22);
+  display:flex;align-items:center;gap:8px
+}
+.sub::before{content:"";width:3px;height:10px;background:var(--pu);box-shadow:0 0 7px rgba(176,107,255,.7)}
+.sub .r{margin-left:auto;color:var(--txt-dim);letter-spacing:.12em;font-size:8.5px}
+
+/* ============================================================
+   TOPOLOGY
+   ============================================================ */
+.topo{padding:6px 8px 8px;background:
+  radial-gradient(circle at 1px 1px,rgba(0,229,255,.10) 1px,transparent 0) 0 0/16px 16px;
+  background-color:#060b10}
+.topo svg{width:100%;height:auto;display:block}
+.tl-box{fill:rgba(0,229,255,.055);stroke:#1d4a5e;stroke-width:1}
+.tl-box.gr{fill:rgba(57,255,158,.06);stroke:#1e5c44}
+.tl-box.pu{fill:rgba(176,107,255,.07);stroke:#4a2f77}
+.tl-t{font-family:var(--mono);font-size:9.5px;fill:#cfeaf4;letter-spacing:.06em}
+.tl-s{font-family:var(--mono);font-size:8.5px;fill:#4d7286;letter-spacing:.08em}
+.tl-ic{stroke:#00e5ff;stroke-width:1.2;fill:none;opacity:.9}
+.tl-ic.gr{stroke:#39ff9e}
+.tl-ic.pu{stroke:#b06bff}
+.tl-link{stroke:#1b4356;stroke-width:1;fill:none}
+.tl-flow{stroke:rgba(0,229,255,.75);stroke-width:1.2;fill:none;stroke-dasharray:3 6;
+  animation:dash 1.1s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-18}}
+.tl-pkt{fill:#00e5ff;filter:drop-shadow(0 0 4px #00e5ff);animation:pkt 2.2s linear infinite}
+@keyframes pkt{0%{opacity:0;transform:translateY(-6px)}12%{opacity:1}88%{opacity:1}100%{opacity:0;transform:translateY(58px)}}
+
+/* ============================================================
+   QUICK ACTIONS
+   ============================================================ */
+.qa{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line)}
+.qa button{
+  appearance:none;border:none;background:#070c12;color:#8fbfd0;font-family:var(--mono);
+  font-size:11px;letter-spacing:.05em;padding:8px 11px;display:flex;align-items:center;gap:9px;
+  cursor:pointer;text-align:left;transition:background .12s,color .12s;
+}
+.qa button .idx{color:var(--cy);font-size:10px}
+.qa button .lb{flex:1 1 auto}
+.qa button .fk{
+  font-size:9px;color:var(--txt-faint);border:1px solid var(--line-2);padding:0 4px;border-radius:2px
+}
+.qa button:hover{background:rgba(0,229,255,.10);color:#eafcff}
+.qa button:hover .idx{text-shadow:0 0 8px rgba(0,229,255,.8)}
+.qa button:hover .fk{color:var(--gr);border-color:rgba(57,255,158,.4)}
+
+/* ============================================================
+   STATUS BAR
+   ============================================================ */
+footer{
+  flex:0 0 auto;display:flex;align-items:stretch;
+  border-top:1px solid var(--line-2);
+  background:linear-gradient(180deg,#070d13,#04080c);
+  box-shadow:0 -1px 0 rgba(0,229,255,.08);font-size:10.5px;
+}
+.st{display:flex;align-items:center;gap:7px;padding:7px 15px;border-right:1px solid var(--line);color:var(--txt-dim);letter-spacing:.06em}
+.st .mk{color:var(--txt-faint)}
+.st.ok{color:#8fd8c0}
+.st b{color:var(--gr);font-weight:500;text-shadow:0 0 8px rgba(57,255,158,.45)}
+.st b.cy{color:var(--cy);text-shadow:0 0 8px rgba(0,229,255,.45)}
+.st b.pu{color:var(--pu);text-shadow:0 0 8px rgba(176,107,255,.45)}
+.spin{display:inline-block;width:9px;height:9px;border:1px solid rgba(57,255,158,.28);border-top-color:var(--gr);
+  border-radius:50%;animation:sp .75s linear infinite;flex:0 0 auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+#motto{
+  margin-left:auto;display:flex;align-items:center;gap:10px;padding:7px 18px;
+  color:var(--pu);letter-spacing:.28em;font-size:10px;text-transform:uppercase;
+  text-shadow:0 0 12px rgba(176,107,255,.5);border-left:1px solid var(--line);
+  background:linear-gradient(90deg,transparent,rgba(176,107,255,.07))
+}
+#motto .sep{color:var(--txt-faint);letter-spacing:0}
+#motto .ver{color:var(--txt-faint);letter-spacing:.12em;font-size:9px}
+
+/* ---------- geolocation ---------- */
+.geo-wrap{display:grid;grid-template-columns:1fr 186px;gap:12px;align-items:stretch}
+.geo-map{width:100%;height:auto;background:#070a0f;border:1px solid var(--line);border-radius:3px}
+.geo-grid line{stroke:rgba(0,229,255,.09);stroke-width:.6}
+.geo-grid line.maj{stroke:rgba(0,229,255,.17);stroke-width:.9}
+.geo-land path{fill:rgba(57,255,158,.10);stroke:rgba(57,255,158,.42);stroke-width:.7;stroke-linejoin:round}
+.geo-dot{fill:#39ff9e;stroke:#0a0e14;stroke-width:1.2}
+.geo-ring{fill:none;stroke:#39ff9e;stroke-width:1.1;opacity:.85}
+.geo-pulse{opacity:.9}
+.geo-side{display:flex;flex-direction:column;gap:5px;justify-content:flex-start}
+.kv{display:flex;flex-direction:column;gap:1px;padding:4px 7px;background:rgba(255,255,255,.017);border-left:2px solid var(--line);border-radius:2px}
+.kv span{font-size:8.5px;letter-spacing:.11em;color:var(--dim)}
+.kv b{font-size:11px;font-weight:500;color:var(--tx);font-family:var(--mono);word-break:break-word;line-height:1.25}
+.geo-pulse,.geo-ring{transform-box:fill-box;transform-origin:center}
+.geo-ring{animation:georing 2.4s ease-out infinite}
+@keyframes georing{0%{r:5;opacity:.9}100%{r:16;opacity:0}}
+
+/* ---------- security audit ---------- */
+.aud-top{display:grid;grid-template-columns:112px 1fr;gap:13px;align-items:center;margin-bottom:11px}
+.gauge{position:relative;width:112px;height:112px}
+.gauge svg{width:100%;height:100%;transform:rotate(-90deg)}
+.g-track{fill:none;stroke:rgba(255,255,255,.06);stroke-width:9}
+.g-fill{fill:none;stroke:var(--gr);stroke-width:9;stroke-linecap:round;stroke-dasharray:301.6;stroke-dashoffset:301.6;transition:stroke-dashoffset .7s ease,stroke .4s}
+.g-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
+.g-mid b{font-size:27px;font-weight:600;color:var(--gr);font-family:var(--mono);line-height:1}
+.g-mid span{font-size:8px;letter-spacing:.16em;color:var(--dim);margin-top:2px}
+.aud-verdict{display:flex;flex-direction:column;gap:4px;min-width:0}
+.av-sev{font-size:10.5px;font-weight:600;letter-spacing:.1em;color:var(--am);align-self:flex-start;padding:2px 8px;border:1px solid currentColor;border-radius:2px;opacity:.95}
+.av-head{font-size:12.5px;color:var(--tx);line-height:1.4}
+.av-detail{font-size:11px;color:var(--dim);line-height:1.5}
+.aud-counts{display:flex;gap:5px;flex-wrap:wrap;margin-top:3px}
+.aud-counts span{font-size:8.5px;letter-spacing:.09em;padding:2px 6px;border-radius:2px;border:1px solid var(--line);color:var(--dim)}
+.aud-counts span b{font-weight:600}
+.aud-tabs{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:9px}
+.aud-tab{font-size:9px;letter-spacing:.1em;padding:4px 9px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:2px;color:var(--dim);cursor:pointer;font-family:var(--mono);transition:.15s}
+.aud-tab:hover{border-color:var(--cy);color:var(--cy)}
+.aud-tab.on{background:rgba(0,229,255,.11);border-color:var(--cy);color:var(--cy)}
+.aud-tab b{font-weight:600;margin-left:4px}
+.aud-tab b.sev-high,.aud-tab b.sev-critical{color:var(--rd)}
+.aud-tab b.sev-medium{color:var(--am)}
+.aud-tab b.sev-low{color:var(--cy)}
+.aud-findings{display:flex;flex-direction:column;gap:5px;max-height:430px;overflow-y:auto}
+.aud-findings .finding,.aud-findings .f-sub,.aud-findings .tbl-wrap{flex:0 0 auto}
+.f-sub{font-size:9px;letter-spacing:.11em;color:var(--txt-faint);text-transform:uppercase;margin-bottom:1px}
+.finding{border:1px solid var(--line);border-left-width:3px;border-radius:2px;background:rgba(255,255,255,.016);overflow:hidden}
+.finding.sev-critical{border-left-color:var(--rd)}
+.finding.sev-high{border-left-color:var(--rd)}
+.finding.sev-medium{border-left-color:var(--am)}
+.finding.sev-low{border-left-color:var(--cy)}
+.finding.sev-ok{border-left-color:var(--gr)}
+.finding.sev-info,.finding.sev-unknown{border-left-color:var(--pu)}
+.f-head{display:flex;align-items:baseline;gap:8px;padding:6px 9px;cursor:pointer;user-select:none}
+.f-head:hover{background:rgba(255,255,255,.028)}
+.f-sev{font-size:8px;font-weight:600;letter-spacing:.1em;padding:1.5px 6px;border-radius:2px;border:1px solid currentColor;flex:0 0 auto}
+.finding.sev-critical .f-sev,.finding.sev-high .f-sev{color:var(--rd)}
+.finding.sev-medium .f-sev{color:var(--am)}
+.finding.sev-low .f-sev{color:var(--cy)}
+.finding.sev-ok .f-sev{color:var(--gr)}
+.finding.sev-info .f-sev,.finding.sev-unknown .f-sev{color:var(--pu)}
+.f-title{font-size:11.5px;color:var(--tx);flex:1;min-width:0;line-height:1.3}
+.f-value{font-size:10px;color:var(--cy);font-family:var(--mono);text-align:right;word-break:break-word;max-width:44%;flex:0 0 auto}
+.f-caret{font-size:8px;color:var(--dim);flex:0 0 auto;transition:transform .18s}
+.finding.open .f-caret{transform:rotate(90deg)}
+.f-body{display:none;padding:0 9px 8px 9px;border-top:1px solid var(--line)}
+.finding.open .f-body{display:block}
+.f-detail{font-size:11px;color:var(--dim);line-height:1.55;padding:7px 0 5px}
+.f-fix{font-size:10.5px;color:var(--gr);background:rgba(57,255,158,.055);border:1px solid rgba(57,255,158,.22);border-radius:2px;padding:6px 8px;line-height:1.5;font-family:var(--mono);word-break:break-word}
+.f-fix b{color:var(--gr);font-weight:600;letter-spacing:.06em;font-size:9px;display:block;margin-bottom:2px;opacity:.85}
+
+/* toast */
+#toast{
+  position:fixed;right:16px;bottom:52px;z-index:950;display:flex;flex-direction:column;gap:6px;
+  align-items:flex-end;pointer-events:none
+}
+.toast{
+  border:1px solid rgba(0,229,255,.4);background:rgba(6,12,18,.95);color:#cfeef8;
+  padding:6px 12px;font-size:10.5px;letter-spacing:.1em;
+  box-shadow:0 0 18px -4px rgba(0,229,255,.55);animation:tin .25s ease-out both;
+}
+.toast b{color:var(--gr);font-weight:500}
+@keyframes tin{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+.toast.out{animation:tout .3s ease-in both}
+@keyframes tout{to{opacity:0;transform:translateX(16px)}}
+</style>
+</head>
+<body>
+<div id="bg-grid"></div><div id="bg-glow"></div>
+
+<style>
+/* ---- additions for the live-data layer (keeps base theme intact) ---- */
+#banner{
+  position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:990;
+  width:620px;max-width:92vw;background:linear-gradient(180deg,#0a1018,#060a0f);
+  border:1px solid rgba(255,77,106,.55);box-shadow:0 0 60px -10px rgba(255,77,106,.5);
+  padding:22px 24px;display:none
+}
+#banner.on{display:block}
+#banner h2{font-size:13px;letter-spacing:.24em;color:#ff8fa3;margin-bottom:10px;text-shadow:0 0 12px rgba(255,77,106,.6)}
+#banner p{font-size:11.5px;color:#9fd8e8;line-height:1.75}
+#banner code{color:var(--gr);background:rgba(57,255,158,.08);border:1px solid rgba(57,255,158,.28);padding:1px 6px;display:inline-block;margin:2px 0}
+.inp{
+  appearance:none;background:#070c12;border:1px solid var(--line-2);color:#cfeef8;font-family:var(--mono);
+  font-size:11px;padding:3px 8px;letter-spacing:.06em;outline:none;min-width:130px
+}
+.inp:focus{border-color:rgba(0,229,255,.6);box-shadow:0 0 10px -2px rgba(0,229,255,.7)}
+.btn{
+  appearance:none;background:rgba(0,229,255,.10);border:1px solid rgba(0,229,255,.42);color:var(--cy);
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;padding:3px 9px;cursor:pointer;
+  text-transform:uppercase;transition:background .12s,color .12s
+}
+.btn:hover{background:rgba(0,229,255,.22);color:#eafcff}
+.btn:disabled{opacity:.42;cursor:progress}
+.btn.gr{background:rgba(57,255,158,.10);border-color:rgba(57,255,158,.42);color:var(--gr)}
+.btn.gr:hover{background:rgba(57,255,158,.22)}
+.btn.pu{background:rgba(176,107,255,.10);border-color:rgba(176,107,255,.42);color:var(--pu)}
+.btn.pu:hover{background:rgba(176,107,255,.22)}
+#modal{
+  position:fixed;inset:0;z-index:980;background:rgba(2,5,8,.82);backdrop-filter:blur(3px);
+  display:none;align-items:center;justify-content:center
+}
+#modal.on{display:flex}
+#modal .box{
+  width:820px;max-width:94vw;max-height:82vh;overflow:auto;
+  background:linear-gradient(180deg,#0a1018,#060a0f);border:1px solid var(--line-2);
+  box-shadow:0 0 70px -12px rgba(0,229,255,.55)
+}
+#modal .box .p-body{padding:0}
+.err{color:var(--rd)}
+.dimtxt{color:var(--txt-faint)}
+.warn{color:var(--am)}
+.ok{color:var(--gr)}
+.tbl-fail{color:var(--txt-faint);font-style:italic}
+tr.hopfail td{color:#3d5e70}
+</style>
+
+<div id="banner">
+  <h2>[!] BACKEND OFFLINE</h2>
+  <p>
+    The dashboard reads real network data from the local NETRECON service, which is not responding.<br><br>
+    Start it in a terminal inside this folder:<br>
+    <code>node server.js</code><br><br>
+    Then reload this page at <code>http://127.0.0.1:8787/</code><br><br>
+    <span class="dimtxt">Tip: opening index.html directly from disk (file://) cannot reach the API. Always use the server URL.</span>
+  </p>
+</div>
+
+<div id="app">
+
+  <!-- ===================== HEADER ===================== -->
+  <header>
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 48 48" fill="none" aria-label="NETRECON logo">
+        <defs>
+          <linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#00e5ff"/><stop offset=".55" stop-color="#39ff9e"/><stop offset="1" stop-color="#b06bff"/>
+          </linearGradient>
+        </defs>
+        <path d="M24 3 L43 13 V31 L24 45 L5 31 V13 Z" stroke="url(#lg1)" stroke-width="1.3" opacity=".9"/>
+        <path d="M24 3 L24 45 M5 13 L24 24 L43 13 M5 31 L24 20 L43 31" stroke="url(#lg1)" stroke-width=".8" opacity=".45"/>
+        <path d="M15 30c0-6 4-10 9-10s9 4 9 10" stroke="#00e5ff" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M15 30c0-8 4-14 9-14s9 6 9 14" stroke="#39ff9e" stroke-width="1.2" stroke-linecap="round" opacity=".6"/>
+        <path d="M17.5 27.5h13l-1.6 4.4h-9.8z" fill="#0a1018" stroke="#00e5ff" stroke-width="1.2" stroke-linejoin="round"/>
+        <circle cx="21" cy="29.7" r="1.15" fill="#39ff9e"/>
+        <circle cx="27" cy="29.7" r="1.15" fill="#b06bff"/>
+        <path d="M21 28v-1.4M27 28v-1.4" stroke="#8ff6ff" stroke-width=".8" opacity=".8"/>
+        <path d="M21 26.6h6" stroke="#8ff6ff" stroke-width=".8" opacity=".6"/>
+      </svg>
+      <div>
+        <h1>NETRECON <em>v2.1</em></h1>
+        <div class="tagline">NETWORK DISCOVERY <b>|</b> TRAFFIC MONITOR <i>|</i> ROUTE ANALYZER <b>|</b> SECURITY SCAN</div>
+      </div>
+    </div>
+
+    <div class="hstat">
+      <div class="hcell"><span class="k">User</span><span class="v cy" id="hUser">&mdash;</span></div>
+      <div class="hcell"><span class="k">OS</span><span class="v" id="hOs">&mdash;</span></div>
+      <div class="hcell"><span class="k">Host</span><span class="v" id="hHost">&mdash;</span></div>
+      <div class="hcell"><span class="k">Time</span><span class="v num" id="clock">--:--:--</span></div>
+      <div class="hcell"><span class="k">Status</span><span class="v" id="hStatus"><span class="dot-online"></span>ONLINE</span></div>
+      <div class="hcell" style="min-width:auto"><span class="v" style="color:var(--txt-faint);font-size:10px">netrecon <span class="caret"></span></span></div>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside>
+      <div class="side-head"><span>Modules</span><span class="act" id="navCount">&#9679; 11</span></div>
+      <nav id="nav"></nav>
+      <div class="side-foot">
+        <div class="flow">Scan <b>&gt;</b> Analyze <b>&gt;</b> <s>Secure</s> <em>&gt;</em></div>
+        <div class="meta"><span id="sideIface">&mdash;</span><span id="sideUptime">&mdash;</span></div>
+      </div>
+    </aside>
+
+    <!-- ===================== MAIN ===================== -->
+    <main>
+
+      <!-- ---------- PANEL 1 : WI-FI ---------- -->
+      <section class="panel" style="grid-column:1 / 2">
+        <div class="p-head">
+          <span class="p-title"><span class="sq">[::]</span>AVAILABLE NETWORKS (Wi-Fi)</span>
+          <div class="p-tools">
+            <span class="badge cy" id="wIfaceBadge">INTERFACE &mdash;</span>
+            <button class="btn" id="scanBtn">RESCAN</button>
+            <span class="badge"><span class="dot-online"></span>LIVE</span>
+          </div>
+        </div>
+        <div class="strip">
+          <div class="cell"><span class="k">Last Scan</span><span class="v cy num" id="wLastScan">&mdash;</span></div>
+          <div class="cell"><span class="k">Networks Found</span><span class="v gr num" id="wFound">0</span></div>
+          <div class="cell"><span class="k">Adapter</span><span class="v num" id="wAdapter">&mdash;</span></div>
+          <div class="cell"><span class="k">Band</span><span class="v num" id="wBand">&mdash;</span></div>
+          <div class="cell"><span class="k">Link Rate</span><span class="v num" id="wRate">&mdash;</span></div>
+          <div class="cell grow"><span class="k">Scan Source</span><span class="v num" id="wSource">netsh wlan</span>
+            <div class="progress-mini"><span></span></div>
+          </div>
+        </div>
+        <div class="p-body tight">
+          <div class="tbl-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:44px">#</th>
+                  <th>SSID (Network Name)</th>
+                  <th style="width:150px">Signal</th>
+                  <th style="width:80px">Channel</th>
+                  <th style="width:96px">Security</th>
+                  <th style="width:110px">Frequency</th>
+                </tr>
+              </thead>
+              <tbody id="wifiBody"></tbody>
+            </table>
+          </div>
+          <div class="tbl-foot">
+            <span><b>MODE</b> <span class="chip" id="wMode">&mdash;</span></span>
+            <span><b>BSSIDS</b> <span class="chip" id="wBssids">&mdash;</span></span>
+            <span><b>RADIO</b> <span class="chip" id="wRadio">&mdash;</span></span>
+            <span class="ok" id="wScanNote">initialising&hellip;</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- PANEL 2 : NETWORK SPEED ---------- -->
+      <section class="panel gr" style="grid-column:2 / 3">
+        <div class="p-head">
+          <span class="p-title"><span class="sq">[::]</span>NETWORK SPEED</span>
+          <div class="p-tools">
+            <button class="btn gr" id="speedBtn">RUN SPEED TEST</button>
+            <span class="badge" id="speedBadge">IDLE</span>
+          </div>
+        </div>
+        <div class="p-body">
+          <div class="metric-row">
+            <div class="metric gr">
+              <span class="k">Download</span>
+              <div class="v"><span id="mDown">--</span><small>Mbps</small></div>
+              <div class="spark"><i></i></div>
+            </div>
+            <div class="metric pu">
+              <span class="k">Upload</span>
+              <div class="v"><span id="mUp">--</span><small>Mbps</small></div>
+              <div class="spark"><i></i></div>
+            </div>
+            <div class="metric">
+              <span class="k">Ping</span>
+              <div class="v"><span id="mPing">--</span><small>ms</small></div>
+              <div class="spark"><i></i></div>
+            </div>
+            <div class="metric">
+              <span class="k">Jitter</span>
+              <div class="v"><span id="mJit">--</span><small>ms</small></div>
+              <div class="spark"><i></i></div>
+            </div>
+            <div class="metric gr">
+              <span class="k">Packet Loss</span>
+              <div class="v"><span id="mLoss">--</span><small>%</small></div>
+              <div class="spark"><i></i></div>
+            </div>
+          </div>
+          <div style="margin-top:7px;font-size:9.5px;letter-spacing:.12em" class="dimtxt" id="speedNote">
+            latency sampled over TCP :443 &mdash; capacity measured against speed.cloudflare.com
+          </div>
+
+          <div class="bar">
+            <div class="lab"><span>&#9660; Download capacity</span><b><span id="bDownPct">0</span>% of <span id="bDownScale">100</span> Mbps</b></div>
+            <div class="track"><div class="fill" id="barDown"></div></div>
+          </div>
+          <div class="bar up">
+            <div class="lab"><span>&#9650; Upload capacity</span><b><span id="bUpPct">0</span>% of <span id="bUpScale">100</span> Mbps</b></div>
+            <div class="track"><div class="fill" id="barUp"></div></div>
+          </div>
+
+          <div class="chart-wrap">
+            <div class="chart-title">Real-time Throughput (last 60 seconds)</div>
+            <div class="chart-legend">
+              <span><i style="background:#39ff9e;color:#39ff9e"></i>RX</span>
+              <span><i style="background:#b06bff;color:#b06bff"></i>TX</span>
+            </div>
+            <canvas id="chartSpeed" height="132"></canvas>
+            <div class="axis-note"><span id="sMaxLab">-60s</span><span>-45s</span><span>-30s</span><span>-15s</span><span>NOW</span></div>
+          </div>
+
+          <div class="sub" style="margin:11px -12px -12px;border-top:1px solid var(--line)">Active Connection
+            <span class="r" id="cRadio">&mdash;</span></div>
+          <div class="kv" style="border-top:none">
+            <div>Connection</div><div class="cy" id="cType">&mdash;</div>
+            <div>SSID</div><div class="gr" id="cSsid">&mdash;</div>
+            <div>Signal</div><div id="cSignal">&mdash;</div>
+            <div>Channel</div><div class="num" id="cChan">&mdash;</div>
+            <div>Frequency</div><div class="num" id="cFreq">&mdash;</div>
+            <div>Security</div><div id="cSec">&mdash;</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- PANEL 3 : LIVE TRAFFIC ---------- -->
+      <section class="panel" style="grid-column:1 / 2">
+        <div class="p-head">
+          <span class="p-title"><span class="sq">[::]</span>LIVE NETWORK TRAFFIC</span>
+          <div class="p-tools">
+            <span class="badge"><span class="dot-online"></span>CAPTURING</span>
+            <span class="badge cy" id="trafficSrc">netstat -e</span>
+          </div>
+        </div>
+        <div class="p-body">
+          <div class="metric-row" style="grid-template-columns:repeat(4,1fr)">
+            <div class="metric">
+              <span class="k">Download</span>
+              <div class="v"><span id="tDown">--</span><small>MB/s</small></div>
+              <div class="spark"><i></i></div>
+            </div>
+            <div class="metric pu">
+              <span class="k">Upload</span>
+              <div class="v"><span id="tUp">--</span><small>MB/s</small></div>
+              <div class="spark"><i></i></div>
+            </div>
+            <div class="metric gr">
+              <span class="k">RX Packets</span>
+              <div class="v"><span id="tRx">--</span><small>/s</small></div>
+              <div class="spark"><i></i></div>
+            </div>
+            <div class="metric gr">
+              <span class="k">TX Packets</span>
+              <div class="v"><span id="tTx">--</span><small>/s</small></div>
+              <div class="spark"><i></i></div>
+            </div>
+          </div>
+
+          <div class="chart-wrap" style="margin-top:10px">
+            <div class="chart-title" id="trafficChartTitle">Throughput &mdash; last 60 seconds</div>
+            <div class="chart-legend">
+              <span><i style="background:#00e5ff;color:#00e5ff"></i>RX</span>
+              <span><i style="background:#b06bff;color:#b06bff"></i>TX</span>
+            </div>
+            <canvas id="chartTraffic" height="146"></canvas>
+            <div class="axis-note"><span id="tMaxLab">-60s</span><span>-45s</span><span>-30s</span><span>-15s</span><span>NOW</span></div>
+          </div>
+
+          <div class="sub" style="margin:11px -12px 0;border-top:1px solid var(--line)">Cumulative Counters
+            <span class="r" id="countersNote">system-wide</span></div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:9px 0 0">
+            <div class="metric gr"><span class="k">Total Received</span><div class="v" id="totRx">--</div></div>
+            <div class="metric pu"><span class="k">Total Sent</span><div class="v" id="totTx">--</div></div>
+            <div class="metric"><span class="k">Connections</span><div class="v" id="totConns">--</div></div>
+            <div class="metric"><span class="k">Protocol Split</span><div class="v" style="font-size:16px;padding-top:6px" id="totProto">&mdash;</div></div>
+          </div>
+          <div style="margin-top:8px;font-size:9.5px;letter-spacing:.1em" class="dimtxt" id="peerNote">&mdash;</div>
+
+          <div class="sub" style="margin:11px -12px -12px;border-top:1px solid var(--line)">Current Network Information
+            <span class="r" id="nDesc">&mdash;</span></div>
+          <div class="kv" style="border-top:none">
+            <div>Interface</div><div class="cy" id="nIface">&mdash;</div>
+            <div>MAC Address</div><div class="gr num" id="nMac">&mdash;</div>
+            <div>IP Address</div><div class="num" id="nIp">&mdash;</div>
+            <div>Subnet Mask</div><div class="num" id="nMask">&mdash;</div>
+            <div>Default Gateway</div><div class="num" id="nGw">&mdash;</div>
+            <div>DNS Servers</div><div class="num" id="nDns">&mdash;</div>
+            <div>Link Speed</div><div class="num" id="nLink">&mdash;</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- PANEL 4 : ROUTE ANALYSIS ---------- -->
+      <section class="panel pu" style="grid-column:2 / 3">
+        <div class="p-head">
+          <span class="p-title"><span class="sq">[::]</span>ROUTE ANALYSIS</span>
+          <div class="p-tools">
+            <input class="inp" id="rtHost" value="google.com" spellcheck="false" aria-label="trace target">
+            <button class="btn pu" id="rtGo">TRACE</button>
+          </div>
+        </div>
+        <div class="p-body tight">
+          <table>
+            <thead><tr>
+              <th style="width:52px">Hop</th><th style="width:150px">IP Address</th>
+              <th>Hostname</th><th style="width:82px">Latency</th>
+            </tr></thead>
+            <tbody id="routeBody"></tbody>
+          </table>
+          <div class="tbl-foot">
+            <span><b>PROTO</b> <span class="chip">ICMP</span></span>
+            <span><b>MAX TTL</b> <span class="chip" id="rtMaxTtl">12</span></span>
+            <span><b>ELAPSED</b> <span class="chip" id="rtElapsed">&mdash;</span></span>
+          </div>
+          <div style="padding:10px 12px;border-top:1px solid var(--line);background:rgba(255,255,255,.012)">
+            <div class="kv" style="border:none">
+              <div>Destination</div><div class="pu" id="rtDest">&mdash;</div>
+              <div>Total time</div><div class="num" id="rtTotal">&mdash;</div>
+            </div>
+            <div style="margin-top:8px;font-size:11.5px;letter-spacing:.05em" class="num" id="rtNote">
+              click TRACE to run tracert &mdash; ICMP may be filtered by intermediate hops
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- PANEL 5 : TOPOLOGY ---------- -->
+      <section class="panel" style="grid-column:1 / 2">
+        <div class="p-head">
+          <span class="p-title"><span class="sq">[::]</span>NETWORK TOPOLOGY</span>
+          <div class="p-tools">
+            <button class="btn" id="topoRefresh">REFRESH</button>
+            <span class="badge cy" id="topoBadge">&mdash;</span>
+          </div>
+        </div>
+        <div class="topo">
+          <svg viewBox="0 0 640 322" preserveAspectRatio="xMidYMid meet">
+            <path class="tl-link" d="M320 62 V86"/>
+            <path class="tl-link" d="M320 122 V150"/>
+            <path class="tl-link" d="M320 150 H120 M320 150 H320 M320 150 H520"/>
+            <path class="tl-link" d="M120 150 V186 M320 150 V186 M520 150 V186"/>
+            <path class="tl-link" d="M320 224 V252"/>
+            <path class="tl-flow" d="M320 62 V86"/>
+            <path class="tl-flow" d="M320 122 V150"/>
+            <circle class="tl-pkt" r="2.2" cx="320" cy="88"/>
+            <circle class="tl-pkt" r="2.2" cx="320" cy="126" style="animation-delay:.7s"/>
+
+            <!-- YOUR DEVICE -->
+            <rect class="tl-box gr" x="212" y="18" width="216" height="44" rx="2"/>
+            <g class="tl-ic gr" transform="translate(228,30)">
+              <rect x="0" y="0" width="20" height="12" rx="1"/><path d="M0 12 L-4 17 H24 L20 12"/><path d="M6 20 H14"/>
+            </g>
+            <text class="tl-t" x="258" y="35" id="topoDev">YOUR DEVICE</text>
+            <text class="tl-s" x="258" y="50" id="topoDevSub">&mdash;</text>
+            <text class="tl-s" x="418" y="35" fill="#39ff9e" text-anchor="end" id="topoDevTag">&mdash;</text>
+
+            <!-- ROUTER -->
+            <rect class="tl-box" x="212" y="86" width="216" height="36" rx="2"/>
+            <g class="tl-ic" transform="translate(228,95)">
+              <rect x="0" y="6" width="22" height="9" rx="1"/>
+              <path d="M4 15 L0 20 M18 15 L22 20 M11 0 V4 M11 0 L4 4 M11 0 L18 4"/>
+            </g>
+            <text class="tl-t" x="258" y="102" id="topoRtr">ROUTER / GATEWAY</text>
+            <text class="tl-s" x="258" y="116" id="topoRtrSub">&mdash;</text>
+
+            <!-- LAN BUS LABEL -->
+            <text class="tl-s" x="328" y="146" fill="#00e5ff" id="topoLan">LAN</text>
+
+            <!-- DEVICE 1 -->
+            <rect class="tl-box" x="26" y="186" width="188" height="38" rx="2"/>
+            <g class="tl-ic" transform="translate(40,196)">
+              <rect x="0" y="0" width="18" height="11" rx="1"/><path d="M0 11 L-4 16 H22 L18 11"/>
+            </g>
+            <text class="tl-t" x="68" y="201" id="topoD1">&mdash;</text>
+            <text class="tl-s" x="68" y="215" id="topoD1s">&mdash;</text>
+
+            <!-- DEVICE 2 -->
+            <rect class="tl-box" x="226" y="186" width="188" height="38" rx="2"/>
+            <g class="tl-ic" transform="translate(240,196)">
+              <rect x="1" y="0" width="12" height="18" rx="2"/><path d="M5 15 H9"/>
+            </g>
+            <text class="tl-t" x="268" y="201" id="topoD2">&mdash;</text>
+            <text class="tl-s" x="268" y="215" id="topoD2s">&mdash;</text>
+
+            <!-- DEVICE 3 -->
+            <rect class="tl-box" x="426" y="186" width="188" height="38" rx="2"/>
+            <g class="tl-ic" transform="translate(440,196)">
+              <rect x="0" y="0" width="22" height="13" rx="1"/><path d="M8 13 L6 18 M14 13 L16 18 M6 18 H16"/>
+            </g>
+            <text class="tl-t" x="470" y="201" id="topoD3">&mdash;</text>
+            <text class="tl-s" x="470" y="215" id="topoD3s">&mdash;</text>
+
+            <!-- WAN -->
+            <rect class="tl-box pu" x="212" y="252" width="216" height="46" rx="2"/>
+            <g class="tl-ic pu" transform="translate(228,264)">
+              <circle cx="10" cy="10" r="9"/><path d="M1 10 H19 M10 1 C14 6 14 14 10 19 C6 14 6 6 10 1 Z"/>
+            </g>
+            <text class="tl-t" x="258" y="270" id="topoWan">INTERNET — WAN</text>
+            <text class="tl-s" x="258" y="284" id="topoWanSub">&mdash;</text>
+            <text class="tl-s" x="418" y="270" fill="#b06bff" text-anchor="end" id="topoWanTag">&mdash;</text>
+          </svg>
+        </div>
+        <div class="tbl-foot">
+          <span><b>LOCAL HOSTS</b> <span class="chip" id="topoHosts">&mdash;</span></span>
+          <span><b>SUBNET</b> <span class="chip" id="topoSubnets">&mdash;</span></span>
+          <span><b>GATEWAY</b> <span class="chip" id="topoGw">&mdash;</span></span>
+          <span class="ok" id="topoNote">awaiting ARP data</span>
+        </div>
+      </section>
+
+      <!-- ---------- PANEL 6 : CONNECTED DEVICES ---------- -->
+      <section class="panel" style="grid-column:2 / 3">
+        <div class="p-head">
+          <span class="p-title"><span class="sq">[::]</span>CONNECTED DEVICES</span>
+          <div class="p-tools">
+            <span class="badge" id="devSubnet">ARP &mdash;</span>
+            <button class="btn" id="devSweep">SWEEP LAN</button>
+          </div>
+        </div>
+        <div class="p-body tight">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th style="width:132px">IP Address</th><th style="width:152px">MAC Address</th>
+                <th>Device Name</th><th style="width:88px">Status</th>
+              </tr></thead>
+              <tbody id="devBody"></tbody>
+            </table>
+          </div>
+          <div class="tbl-foot">
+            <span><b>HOSTS</b> <span class="chip" id="devCount">0</span></span>
+            <span><b>PROBED</b> <span class="chip" id="devScanned">&mdash;</span></span>
+            <span class="ok" id="devNote">reading ARP cache&hellip;</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- PANEL 7 : DNS ANALYSIS ---------- -->
+      <section class="panel pu" style="grid-column:1 / 2">
+        <div class="p-head">
+          <span class="p-title"><span class="sq">[::]</span>DNS ANALYSIS</span>
+          <div class="p-tools">
+            <input class="inp" id="dnsInput" value="google.com" spellcheck="false" aria-label="domain">
+            <button class="btn pu" id="dnsGo">LOOKUP</button>
+          </div>
+        </div>
+        <div class="p-body tight">
+          <div class="kv" style="padding:2px 0">
+            <div>Domain</div><div class="pu" id="dnsDomain">&mdash;</div>
+            <div>IP Address</div><div class="num" id="dnsIp">&mdash;</div>
+            <div>TTL</div><div class="num" id="dnsTtl">&mdash;</div>
+            <div>Name</div><div class="num" id="dnsName">&mdash;</div>
+          </div>
+          <div style="padding:9px 12px;border-top:1px solid var(--line);background:rgba(255,255,255,.012)">
+            <div class="kv" style="border:none">
+              <div>Resolver</div><div class="num" id="dnsResolver">&mdash;</div>
+              <div>Query Time</div><div class="num" id="dnsQtime">&mdash;</div>
+              <div>Record</div><div id="dnsRecord">&mdash;</div>
+              <div>PTR</div><div id="dnsPtr">&mdash;</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- PANEL 8 : QUICK ACTIONS ---------- -->
+      <section class="panel gr" style="grid-column:2 / 3">
+        <div class="p-head">
+          <span class="p-title"><span class="sq">[::]</span>QUICK ACTIONS</span>
+          <div class="p-tools"><span class="badge" id="qaScope">SCOPE &mdash;</span></div>
+        </div>
+        <div class="qa" id="qa"></div>
+        <div class="tbl-foot">
+          <span><b>AUTH</b> <span class="chip" id="qaUser">&mdash;</span></span>
+          <span><b>REPORTS</b> <span class="chip">./reports</span></span>
+          <span class="ok">local interface + private LAN only</span>
+        </div>
+      </section>
+
+      <!-- ---------- PANEL 9 : GEOLOCATION ---------- -->
+      <section class="panel cy" style="grid-column:1 / 2">
+        <div class="p-head">
+          <span class="p-title"><span class="sq">[::]</span>GEOLOCATION</span>
+          <div class="p-tools">
+            <span class="badge" id="geoSrc">IP-GEOLOCATION</span>
+            <button class="btn" id="geoBtn">LOCATE</button>
+          </div>
+        </div>
+        <div class="p-body tight">
+          <div class="geo-wrap">
+            <svg id="geoMap" viewBox="0 0 720 360" preserveAspectRatio="xMidYMid meet" class="geo-map">
+              <defs>
+                <radialGradient id="geoGlow"><stop offset="0%" stop-color="#39ff9e" stop-opacity=".55"/><stop offset="100%" stop-color="#39ff9e" stop-opacity="0"/></radialGradient>
+              </defs>
+              <g id="geoGrid" class="geo-grid"></g>
+              <g id="geoLand" class="geo-land"></g>
+              <circle id="geoPulse" class="geo-pulse" r="7" fill="url(#geoGlow)"/>
+              <circle id="geoDot" class="geo-dot" r="3.4"/>
+              <circle id="geoRing" class="geo-ring" r="6"/>
+            </svg>
+            <div class="geo-side">
+              <div class="kv"><span>COORDINATES</span><b class="gr" id="geoLatLon">—</b></div>
+              <div class="kv"><span>CITY / REGION</span><b id="geoCity">—</b></div>
+              <div class="kv"><span>COUNTRY</span><b id="geoCountry">—</b></div>
+              <div class="kv"><span>ISP</span><b id="geoIsp">—</b></div>
+              <div class="kv"><span>ASN</span><b id="geoAs">—</b></div>
+              <div class="kv"><span>PUBLIC IP</span><b class="cy" id="geoIp">—</b></div>
+              <div class="kv"><span>TIMEZONE</span><b id="geoTz">—</b></div>
+              <div class="kv"><span>LOCAL IP</span><b id="geoLocal">—</b></div>
+            </div>
+          </div>
+          <div class="tbl-foot">
+            <span><b>METHOD</b> <span class="chip" id="geoMethod">—</span></span>
+            <span><b>ACCURACY</b> <span class="chip" id="geoAcc">—</span></span>
+            <span class="dimtxt" id="geoNote">resolving public IP…</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- PANEL 10 : SECURITY AUDIT ---------- -->
+      <section class="panel gr" style="grid-column:2 / 3">
+        <div class="p-head">
+          <span class="p-title"><span class="sq">[::]</span>SECURITY AUDIT</span>
+          <div class="p-tools">
+            <span class="badge" id="audGrade">—</span>
+            <button class="btn" id="audBtn">RUN AUDIT</button>
+          </div>
+        </div>
+        <div class="p-body tight">
+          <div class="aud-top">
+            <div class="gauge" id="audGauge">
+              <svg viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="48" class="g-track"/>
+                <circle cx="60" cy="60" r="48" class="g-fill" id="audArc"/>
+              </svg>
+              <div class="g-mid"><b id="audScore">—</b><span>SCORE</span></div>
+            </div>
+            <div class="aud-verdict">
+              <div class="av-sev" id="audVerdict">AWAITING AUDIT</div>
+              <div class="av-head" id="audHeadline">Click RUN AUDIT to inspect this host, your Wi-Fi link, the router and this subnet.</div>
+              <div class="av-detail" id="audDetail">Read-only configuration checks. No credential testing and no exploitation.</div>
+              <div class="aud-counts" id="audCounts"></div>
+            </div>
+          </div>
+          <div class="aud-tabs" id="audTabs"></div>
+          <div class="aud-findings" id="audFindings"><div class="tbl-fail">no audit data</div></div>
+          <div class="tbl-foot">
+            <span><b>ELAPSED</b> <span class="chip" id="audElapsed">—</span></span>
+            <span><b>SCOPE</b> <span class="chip">localhost + gateway + /24</span></span>
+            <span class="ok">connect-only probes</span>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ===================== STATUS BAR ===================== -->
+  <footer>
+    <div class="st"><span class="spin"></span><span id="sbScan">[*] initialising&hellip;</span></div>
+    <div class="st"><span class="mk">&bull;</span><span id="sbFound">&mdash;</span></div>
+    <div class="st"><span class="mk">&bull;</span><span id="sbMonitor">monitoring traffic&hellip;</span></div>
+    <div class="st"><span class="mk">&bull;</span><span>Network speed: <b class="cy">&#9660; <span id="sbDown">--</span> Mbps</b> <b class="pu">&#9650; <span id="sbUp">--</span> Mbps</b></span></div>
+    <div class="st"><span class="mk">&bull;</span><span>Interface: <b class="cy" id="sbIface">&mdash;</b></span></div>
+    <div class="st"><span class="mk">&bull;</span><span>Packets: <span id="sbRx">--</span> rx / <span id="sbTx">--</span> tx</span></div>
+    <div id="motto">Knowledge is the best defense <span class="sep">//</span> <span class="ver" id="mottoVer">netrecon v2.1</span></div>
+  </footer>
+</div>
+
+<div id="scanlines"></div><div id="scanbeam"></div>
+<div id="toast"></div>
+
+<div id="modal">
+  <div class="box panel">
+    <div class="p-head">
+      <span class="p-title" id="modalTitle">RESULT</span>
+      <div class="p-tools"><button class="btn" id="modalClose">CLOSE</button></div>
+    </div>
+    <div class="p-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+============================================================
+ NETRECON v2.1 — SECURITY & NETWORK RECONNAISSANCE REPORT
+============================================================
+ Generated : Wed Sep 30 2026 00:26:47 GMT+0300 (East Africa Time)
+ Host      : DESKTOP-5CGPPVL  (Windows_NT 10.0.22000)
+ Operator  : Samz
+ Scope     : local interface + private LAN
+------------------------------------------------------------
+--- INTERFACE ---
+interface      : Wi-Fi
+adapter        : Intel(R) Dual Band Wireless-AC 8265
+mac            : 14:4f:8a:42:26:2e
+ipv4           : 192.168.0.111/24
+subnet mask    : 255.255.255.0
+gateway        : 192.168.0.1
+dns            : 192.168.0.1
+link speed     : 300 / 300 Mbps
+
+--- WIRELESS LINK ---
+ssid           : Kennedy 2
+bssid          : b4:0f:3b:1b:21:b0
+signal         : -57 dBm (85%)
+channel / band : 5 / 2.4 GHz
+rate rx/tx     : 300 / 300 Mbps
+security       : WPA2 (CCMP)
+
+--- SPEED TEST ---
+download       : 0.07 Mbps (101.2 KB / 12.01 s)
+upload         : 1.48 Mbps (2.66 MB / 15.01 s)
+ping / jitter  : 123 ms / 18.1 ms
+packet loss    : 0 %
+endpoint       : speed.cloudflare.com @ 2026-09-29T21:25:08.562Z
+
+--- CONNECTIONS ---
+tcp / udp      : 304 / 48
+established    : 34
+listening      : 42
+top peers      : 172.217.113.4, 172.217.170.206, 20.59.87.227, 52.98.20.146, 74.242.255.116, 172.217.170.193
+
+--- CONNECTED DEVICES (ARP) ---
+  192.168.0.1     b4:0f:3b:1b:21:b0   Router / Gateway
+  192.168.0.100   b4:0f:3b:1b:21:60   host .100
+  192.168.0.107   82:b9:19:ea:27:59   phone .107
+  192.168.0.110   4a:b6:2a:ab:ff:f5   phone .110
+  192.168.0.113   76:e8:37:ca:c5:20   phone .113
+  192.168.0.114   9a:51:37:96:ca:2f   phone .114
+  192.168.0.118   f8:63:3f:a2:4c:bb   host .118
+  192.168.0.122   72:fb:0b:b6:40:d3   phone .122
+
+--- ROUTE ---
+  1   192.168.0.1       (gateway)                     125 ms
+  2   192.168.1.1       (no PTR record)               78 ms
+  3   172.23.246.130    (no PTR record)               74 ms
+  4   172.23.184.156    (no PTR record)               147 ms
+  5   172.23.148.18     (no PTR record)               206 ms
+  6   154.79.253.20     20-253-79-154.r.airtelkenya.com27 ms
+  7   *                 Request timed out             --
+  8   142.251.216.238   ncmbat-ad-in-f14.1e100.net    70 ms
+
+NOTE: all values captured from this host's network stack.

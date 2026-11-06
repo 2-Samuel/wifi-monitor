@@ -1,0 +1,52 @@
+============================================================
+ NETRECON v2.1 — SECURITY & NETWORK RECONNAISSANCE REPORT
+============================================================
+ Generated : Wed Sep 30 2026 00:21:27 GMT+0300 (East Africa Time)
+ Host      : DESKTOP-5CGPPVL  (Windows_NT 10.0.22000)
+ Operator  : Samz
+ Scope     : local interface + private LAN
+------------------------------------------------------------
+--- INTERFACE ---
+interface      : Wi-Fi
+adapter        : Intel(R) Dual Band Wireless-AC 8265
+mac            : 14:4f:8a:42:26:2e
+ipv4           : 192.168.0.111/24
+subnet mask    : 255.255.255.0
+gateway        : 192.168.0.1
+dns            : 192.168.0.1
+link speed     : 240 / 240 Mbps
+
+--- WIRELESS LINK ---
+ssid           : Kennedy 2
+bssid          : b4:0f:3b:1b:21:b0
+signal         : -58 dBm (83%)
+channel / band : 5 / 2.4 GHz
+rate rx/tx     : 243 / 243 Mbps
+security       : WPA2 (CCMP)
+
+--- SPEED TEST ---
+download       : 0.11 Mbps (155.4 KB / 12.01 s)
+upload         : null Mbps (0 B / 2.79 s)
+ping / jitter  : 311 ms / 222.2 ms
+packet loss    : 0 %
+endpoint       : speed.cloudflare.com @ 2026-09-29T21:19:36.276Z
+
+--- CONNECTIONS ---
+tcp / udp      : 330 / 62
+established    : 59
+listening      : 40
+top peers      : 142.251.127.84, 20.59.87.227, 52.98.20.146, 142.251.150.4, 142.251.216.238, 172.217.170.206
+
+--- CONNECTED DEVICES (ARP) ---
+  192.168.0.1     b4:0f:3b:1b:21:b0   Router / Gateway
+  192.168.0.100   b4:0f:3b:1b:21:60   host .100
+  192.168.0.107   82:b9:19:ea:27:59   random-mac .107
+  192.168.0.110   4a:b6:2a:ab:ff:f5   random-mac .110
+  192.168.0.113   76:e8:37:ca:c5:20   random-mac .113
+  192.168.0.114   9a:51:37:96:ca:2f   random-mac .114
+  192.168.0.118   f8:63:3f:a2:4c:bb   host .118
+  192.168.0.122   72:fb:0b:b6:40:d3   random-mac .122
+
+--- ROUTE ---
+
+NOTE: all values captured from this host's network stack.
